@@ -42,6 +42,7 @@ function actionLabel(item: DomainRecord): string {
         <dl>
           <dt>窗口版本</dt><dd>v{{ mode === 'window' ? item.version : (item.windowVersion || 1) }}</dd>
           <template v-if="mode === 'clearance'">
+            <dt>系泊方案</dt><dd>{{ item.planCode || '未关联' }}</dd>
             <dt>首次提交</dt><dd>{{ item.submittedBy || '待提交' }}</dd>
             <dt>独立复核</dt><dd>{{ item.confirmedBy || '待复核' }}</dd>
           </template>
@@ -50,6 +51,14 @@ function actionLabel(item: DomainRecord): string {
             <dt>评估证据</dt><dd>{{ item.evidence || '待补充' }}</dd>
           </template>
         </dl>
+        <el-alert
+          v-if="mode === 'clearance' && item.blockedReason"
+          class="blocked-alert"
+          :title="`缆绳检查阻断：${item.blockedReason}`"
+          type="error"
+          :closable="false"
+          show-icon
+        />
         <el-button v-if="mode === 'clearance' && canAct(item)" type="primary" @click="emit('confirm', item)">{{ actionLabel(item) }}</el-button>
         <small v-else-if="mode === 'clearance' && item.status === 'pending' && item.submittedBy">等待其他复核员确认</small>
       </article>

@@ -30,11 +30,14 @@ docker compose down -v --remove-orphans
 | 系泊方案 | `MooringPlan` | `/api/plans` | draft, review, approved, superseded |
 | 风浪窗口 | `WeatherWindow` | `/api/weather-windows` | forecast, safe, restricted, expired |
 | 安全许可 | `SafetyClearance` | `/api/clearance` | pending, cleared, restricted, expired |
+| 缆绳检查 | `RopeInspection` | `/api/rope-inspections` | open, closed |
 
 - JWT 登录和 viewer/operator/reviewer/admin 四级 RBAC；后端写路由中间件、前端路由守卫与按钮权限保持一致。
 - 所有状态变化使用乐观锁并写入不可覆盖的审计日志。
 - 安全许可采用真实双人确认：operator 首次提交后仍保持 `pending`，不同账号的 reviewer/admin 才能放行；提交人不能自审。
-- `ClearancePanel` 在风浪窗口和许可页共用，固化窗口版本、首次提交人及复核人；许可审计显式保存窗口版本、操作者和请求 ID。
+- 缆绳检查按系泊方案和缆位追加检查历史：记录检查时间、检查人、缺陷等级和处置结论，页面提供每个缆位的当前结论与阻断原因。
+- 检查结论为断股、超限磨损或待换绳时，关联方案的许可提交与复核放行均被阻断；已提交待复核的许可自动退回（清空提交人并固化对应检查编码、阻断原因和窗口版本审计）；现场换绳复查通过后旧检查自动闭环，许可才能重新提交。
+- `ClearancePanel` 在风浪窗口和许可页共用，固化窗口版本、首次提交人及复核人；退回许可显式展示缆绳检查阻断原因；许可审计显式保存窗口版本、操作者和请求 ID。
 - `RiskBadge` 在系泊方案和风浪窗口页共用，统一呈现风险等级与状态。
 - 请求 ID、结构化日志、全局错误映射和 Redis 分布式限流。
 - 提供脱敏运行配置、当前会话、审计汇总和单实体审计历史接口。
@@ -100,7 +103,7 @@ cd .. && docker compose config --quiet
 │   ├── api/                        # 按实体拆分的 API
 │   ├── components/common/          # 共享业务组件
 │   ├── hooks/                      # 认证与分页 hooks
-│   ├── pages/                      # 五个路由页面
+│   ├── pages/                      # 六个路由页面
 │   ├── router/                     # 路由配置
 │   ├── stores/                     # 按实体拆分的状态仓库
 │   ├── types/                      # 共享类型与枚举
@@ -115,8 +118,11 @@ cd .. && docker compose config --quiet
 |---|---|---|
 | `CallState` | `planned, approach, moored, departed` | `backend/internal/constants/status.go`、`frontend/src/types/status.ts` |
 | `ClearanceState` | `pending, cleared, restricted, expired` | `backend/internal/constants/status.go`、`frontend/src/types/status.ts` |
+| `RopeInspectionState` | `open, closed` | `backend/internal/constants/status.go`、`frontend/src/types/status.ts` |
+| `RopeDefectLevel` | `none, wear_minor, wear_overlimit, broken_strand` | `backend/internal/constants/status.go`、`frontend/src/types/status.ts` |
+| `RopeConclusion` | `passed, monitor, replace_pending` | `backend/internal/constants/status.go`、`frontend/src/types/status.ts` |
 
-每个实体自己的完整迁移图同样位于 `backend/internal/constants/status.go`；页面使用的状态列表位于 `frontend/src/types/status.ts`。修改状态时必须同步两处并更新对应服务测试。
+每个实体自己的完整迁移图同样位于 `backend/internal/constants/status.go`；页面使用的状态列表位于 `frontend/src/types/status.ts`。修改状态时必须同步两处并更新对应服务测试。缆绳检查的阻断规则（断股、超限磨损或待换绳）由 `constants.IsBlockingRopeInspection` 与前端 `isBlockingRopeInspection` 共同表达，修改时需同步。
 
 ## 环境变量
 

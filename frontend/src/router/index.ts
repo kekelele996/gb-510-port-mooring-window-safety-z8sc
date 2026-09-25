@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import VesselCallPage from '../pages/VesselCallPage.vue';
 import MooringPlanPage from '../pages/MooringPlanPage.vue';
+import RopeInspectionPage from '../pages/RopeInspectionPage.vue';
 import WeatherWindowPage from '../pages/WeatherWindowPage.vue';
 import SafetyClearancePage from '../pages/SafetyClearancePage.vue';
 import AuditPage from '../pages/AuditPage.vue';
@@ -12,6 +13,7 @@ export const router = createRouter({ history: createWebHistory(), routes: [
   { path: '/', redirect: '/vessels' },
   { path: '/vessels', component: VesselCallPage, meta: { minimumRole: 'viewer' } },
   { path: '/plans', component: MooringPlanPage, meta: { minimumRole: 'viewer' } },
+  { path: '/rope-inspections', component: RopeInspectionPage, meta: { minimumRole: 'viewer' } },
   { path: '/weather-windows', component: WeatherWindowPage, meta: { minimumRole: 'viewer' } },
   { path: '/clearance', component: SafetyClearancePage, meta: { minimumRole: 'operator' } },
   { path: '/audit', component: AuditPage, meta: { minimumRole: 'reviewer' } },

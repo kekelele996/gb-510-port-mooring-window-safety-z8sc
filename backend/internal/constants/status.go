@@ -53,6 +53,59 @@ var SafetyClearanceTransitions = map[string]map[string]bool{
 	"expired":    {"restricted": true},
 }
 
+// Rope inspection 缆绳检查 shared enumerations. Mirrors live in
+// frontend/src/types/status.ts; blocking rules must stay identical on both sides.
+
+type RopeInspectionState string
+
+const (
+	RopeInspectionStateOpen   RopeInspectionState = "open"
+	RopeInspectionStateClosed RopeInspectionState = "closed"
+)
+
+var AllRopeInspectionState = []string{"open", "closed"}
+
+const (
+	RopeDefectNone          = "none"
+	RopeDefectWearMinor     = "wear_minor"
+	RopeDefectWearOverlimit = "wear_overlimit"
+	RopeDefectBrokenStrand  = "broken_strand"
+)
+
+var AllRopeDefectLevel = []string{"none", "wear_minor", "wear_overlimit", "broken_strand"}
+
+const (
+	RopeConclusionPassed         = "passed"
+	RopeConclusionMonitor        = "monitor"
+	RopeConclusionReplacePending = "replace_pending"
+)
+
+var AllRopeConclusion = []string{"passed", "monitor", "replace_pending"}
+
+var RopeDefectLabels = map[string]string{
+	RopeDefectNone:          "无缺陷",
+	RopeDefectWearMinor:     "轻微磨损",
+	RopeDefectWearOverlimit: "超限磨损",
+	RopeDefectBrokenStrand:  "断股",
+}
+
+var RopeConclusionLabels = map[string]string{
+	RopeConclusionPassed:         "通过",
+	RopeConclusionMonitor:        "观察使用",
+	RopeConclusionReplacePending: "待换绳",
+}
+
+var RopeInspectionTransitions = map[string]map[string]bool{
+	"open":   {"closed": true},
+	"closed": {},
+}
+
+// IsBlockingRopeInspection reports whether a defect level / conclusion pair must
+// block the linked safety clearance: 断股、超限磨损或待换绳均阻断放行。
+func IsBlockingRopeInspection(defectLevel, conclusion string) bool {
+	return defectLevel == RopeDefectWearOverlimit || defectLevel == RopeDefectBrokenStrand || conclusion == RopeConclusionReplacePending
+}
+
 func CanTransition(graph map[string]map[string]bool, from, to string) bool {
 	targets, exists := graph[from]
 	return exists && targets[to]

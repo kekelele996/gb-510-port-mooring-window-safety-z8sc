@@ -1,4 +1,6 @@
 
+import type { RopeConclusion, RopeDefectLevel, RopeInspectionState } from './status';
+
 export interface DomainRecord {
   id: number;
   code: string;
@@ -16,10 +18,33 @@ export interface DomainRecord {
   evidence: string;
   relatedCode: string;
   windowVersion?: number;
+  planCode?: string;
+  blockedReason?: string;
+  blockedInspectionId?: number;
   submittedBy?: string;
   submittedAt?: string;
   confirmedBy?: string;
   confirmedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RopeInspection {
+  id: number;
+  code: string;
+  name: string;
+  status: RopeInspectionState;
+  version: number;
+  description: string;
+  planCode: string;
+  linePosition: string;
+  inspectedAt: string;
+  inspector: string;
+  defectLevel: RopeDefectLevel;
+  conclusion: RopeConclusion;
+  blockedReason: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
   createdAt: string;
   updatedAt: string;
 }

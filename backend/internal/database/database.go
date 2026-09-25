@@ -81,6 +81,7 @@ func migrate(db *gorm.DB) error {
 		&model.MooringPlan{},
 		&model.WeatherWindow{},
 		&model.SafetyClearance{},
+		&model.RopeInspection{},
 	)
 }
 
@@ -114,6 +115,10 @@ func Seed(ctx context.Context, db *gorm.DB) error {
 	}
 
 	if err := seedWeatherWindow(ctx, db); err != nil {
+		return err
+	}
+
+	if err := seedRopeInspection(ctx, db); err != nil {
 		return err
 	}
 
@@ -202,30 +207,66 @@ func seedWeatherWindow(ctx context.Context, db *gorm.DB) error {
 	return db.WithContext(ctx).Create(&items).Error
 }
 
+func seedRopeInspection(ctx context.Context, db *gorm.DB) error {
+	var count int64
+	if err := db.WithContext(ctx).Model(&model.RopeInspection{}).Count(&count).Error; err != nil || count > 0 {
+		return err
+	}
+	now := time.Now().UTC()
+	items := []model.RopeInspection{
+
+		{BaseModel: model.BaseModel{Code: "RI-001", Name: "MP-001 艏缆-1 缆绳检查", Status: "closed", Version: 1,
+			Description: "靠泊前例行检查，缆绳状态良好"}, PlanCode: "MP-001", LinePosition: "艏缆-1",
+			InspectedAt: now.Add(-2 * time.Hour), Inspector: "operator", DefectLevel: "none", Conclusion: "passed"},
+
+		{BaseModel: model.BaseModel{Code: "RI-002", Name: "MP-002 艉缆-2 缆绳检查", Status: "open", Version: 1,
+			Description: "现场发现断股，需换绳后复查"}, PlanCode: "MP-002", LinePosition: "艉缆-2",
+			InspectedAt: now.Add(-50 * time.Minute), Inspector: "operator", DefectLevel: "broken_strand",
+			Conclusion: "replace_pending", BlockedReason: "艉缆-2 断股，处置结论：待换绳"},
+
+		{BaseModel: model.BaseModel{Code: "RI-003", Name: "MP-003 横缆-1 缆绳检查", Status: "closed", Version: 1,
+			Description: "轻微磨损，观察使用"}, PlanCode: "MP-003", LinePosition: "横缆-1",
+			InspectedAt: now.Add(-30 * time.Minute), Inspector: "reviewer", DefectLevel: "wear_minor", Conclusion: "monitor"},
+	}
+	return db.WithContext(ctx).Create(&items).Error
+}
+
 func seedSafetyClearance(ctx context.Context, db *gorm.DB) error {
 	var count int64
 	if err := db.WithContext(ctx).Model(&model.SafetyClearance{}).Count(&count).Error; err != nil || count > 0 {
 		return err
 	}
 	now := time.Now().UTC()
+	var blockedInspection model.RopeInspection
+	blockedInspectionID := uint(0)
+	if err := db.WithContext(ctx).Where("code = ?", "RI-002").First(&blockedInspection).Error; err == nil {
+		blockedInspectionID = blockedInspection.ID
+	}
 	items := []model.SafetyClearance{
 
 		{BaseModel: model.BaseModel{Code: "SC-001", Name: "安全许可示例一", Status: "pending", Version: 1,
 			Description: "用于启动验证和主要流程演示的安全许可记录"}, Facility: "港口系泊安全窗口评估区域1", Owner: "运行一组",
 			Category: "常规", RiskLevel: "low", MetricValue: 12.5, MetricUnit: "unit",
 			EffectiveAt: now.Add(0 * time.Hour), Evidence: "已完成基础证据核对", RelatedCode: "WW-001",
-			WindowVersion: 1, SubmittedBy: "operator", SubmittedAt: timePointer(now.Add(-15 * time.Minute))},
+			WindowVersion: 1, PlanCode: "MP-001", SubmittedBy: "operator", SubmittedAt: timePointer(now.Add(-15 * time.Minute))},
 
 		{BaseModel: model.BaseModel{Code: "SC-002", Name: "安全许可示例二", Status: "cleared", Version: 1,
 			Description: "用于启动验证和主要流程演示的安全许可记录"}, Facility: "港口系泊安全窗口评估区域2", Owner: "质量复核组",
 			Category: "重点", RiskLevel: "medium", MetricValue: 25.0, MetricUnit: "%",
 			EffectiveAt: now.Add(3 * time.Hour), Evidence: "已完成基础证据核对", RelatedCode: "WW-002",
-			WindowVersion: 1, SubmittedBy: "operator", SubmittedAt: timePointer(now.Add(-45 * time.Minute)), ConfirmedBy: "reviewer", ConfirmedAt: timePointer(now.Add(-30 * time.Minute))},
+			WindowVersion: 1, PlanCode: "MP-003", SubmittedBy: "operator", SubmittedAt: timePointer(now.Add(-45 * time.Minute)), ConfirmedBy: "reviewer", ConfirmedAt: timePointer(now.Add(-30 * time.Minute))},
 
 		{BaseModel: model.BaseModel{Code: "SC-003", Name: "安全许可示例三", Status: "restricted", Version: 1,
 			Description: "用于启动验证和主要流程演示的安全许可记录"}, Facility: "港口系泊安全窗口评估区域3", Owner: "安全主管组",
 			Category: "复核", RiskLevel: "high", MetricValue: 37.5, MetricUnit: "score",
 			EffectiveAt: now.Add(6 * time.Hour), Evidence: "已完成基础证据核对", RelatedCode: "WW-003", WindowVersion: 1},
+
+		{BaseModel: model.BaseModel{Code: "SC-004", Name: "安全许可示例四", Status: "pending", Version: 1,
+			Description: "缆绳检查发现断股，待复核许可已退回，换绳复查通过后可重新提交"}, Facility: "港口系泊安全窗口评估区域2", Owner: "运行一组",
+			Category: "重点", RiskLevel: "high", MetricValue: 31.0, MetricUnit: "score",
+			EffectiveAt: now.Add(2 * time.Hour), Evidence: "等待换绳复查", RelatedCode: "WW-002",
+			WindowVersion: 1, PlanCode: "MP-002",
+			BlockedReason: "检查 RI-002：艉缆-2 断股，处置结论：待换绳", BlockedInspectionID: blockedInspectionID},
 	}
 	return db.WithContext(ctx).Create(&items).Error
 }

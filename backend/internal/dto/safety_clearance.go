@@ -18,6 +18,7 @@ type CreateSafetyClearance struct {
 	Evidence      string    `json:"evidence" binding:"max=2000"`
 	RelatedCode   string    `json:"relatedCode" binding:"max=64"`
 	WindowVersion uint      `json:"windowVersion" binding:"omitempty,min=1"`
+	PlanCode      string    `json:"planCode" binding:"omitempty,max=64"`
 }
 
 type UpdateSafetyClearance struct {
@@ -34,4 +35,5 @@ type UpdateSafetyClearance struct {
 	Evidence        string    `json:"evidence" binding:"max=2000"`
 	RelatedCode     string    `json:"relatedCode" binding:"max=64"`
 	WindowVersion   uint      `json:"windowVersion" binding:"omitempty,min=1"`
+	PlanCode        string    `json:"planCode" binding:"omitempty,max=64"`
 }

@@ -17,6 +17,11 @@ type SafetyClearance struct {
 	Evidence      string     `json:"evidence" gorm:"size:2000"`
 	RelatedCode   string     `json:"relatedCode" gorm:"size:64;index"`
 	WindowVersion uint       `json:"windowVersion" gorm:"not null;default:1"`
+	PlanCode      string     `json:"planCode" gorm:"size:64;index"`
+	// BlockedReason and BlockedInspectionID record why a pending clearance was
+	// returned by a blocking 缆绳检查. They clear on the next successful submit.
+	BlockedReason       string `json:"blockedReason" gorm:"size:500"`
+	BlockedInspectionID uint   `json:"blockedInspectionId" gorm:"index"`
 	SubmittedBy   string     `json:"submittedBy" gorm:"size:80;index"`
 	SubmittedAt   *time.Time `json:"submittedAt"`
 	ConfirmedBy   string     `json:"confirmedBy" gorm:"size:80;index"`

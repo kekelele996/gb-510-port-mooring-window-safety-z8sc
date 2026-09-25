@@ -12,6 +12,7 @@ import (
 type MooringPlanRepository interface {
 	List(context.Context, dto.PageQuery) (Page[model.MooringPlan], error)
 	Get(context.Context, uint) (model.MooringPlan, error)
+	GetByCode(context.Context, string) (model.MooringPlan, error)
 	Create(context.Context, *model.MooringPlan) error
 	Update(context.Context, uint, uint, *model.MooringPlan) error
 	Delete(context.Context, uint) error
@@ -31,6 +32,9 @@ func (r *mooringPlanRepository) List(ctx context.Context, q dto.PageQuery) (Page
 }
 func (r *mooringPlanRepository) Get(ctx context.Context, id uint) (model.MooringPlan, error) {
 	return r.store.Get(ctx, id)
+}
+func (r *mooringPlanRepository) GetByCode(ctx context.Context, code string) (model.MooringPlan, error) {
+	return r.store.GetByCode(ctx, code)
 }
 func (r *mooringPlanRepository) Create(ctx context.Context, item *model.MooringPlan) error {
 	return r.store.Create(ctx, item)
