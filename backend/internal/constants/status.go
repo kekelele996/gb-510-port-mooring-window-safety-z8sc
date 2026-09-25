@@ -25,6 +25,43 @@ const (
 
 var AllClearanceState = []string{"pending", "cleared", "restricted", "expired"}
 
+type InspectionState string
+
+const (
+	InspectionStateOpen       InspectionState = "open"
+	InspectionStateBlocking   InspectionState = "blocking"
+	InspectionStateResolved   InspectionState = "resolved"
+	InspectionStateSuperseded InspectionState = "superseded"
+)
+
+var AllInspectionState = []string{"open", "blocking", "resolved", "superseded"}
+
+// DefectLevel values mirror frontend/src/types/status.ts ALL_DEFECT_LEVEL.
+const (
+	DefectNone          = "none"
+	DefectMinorWear     = "minor_wear"
+	DefectWearOverLimit = "wear_over_limit"
+	DefectBrokenStrand  = "broken_strand"
+)
+
+var AllDefectLevel = []string{"none", "minor_wear", "wear_over_limit", "broken_strand"}
+
+// InspectionConclusion values mirror frontend/src/types/status.ts ALL_INSPECTION_CONCLUSION.
+const (
+	ConclusionPass           = "pass"
+	ConclusionMonitor        = "monitor"
+	ConclusionReplacePending = "replace_pending"
+	ConclusionRecheckPass    = "recheck_pass"
+)
+
+var AllInspectionConclusion = []string{"pass", "monitor", "replace_pending", "recheck_pass"}
+
+// IsBlockingInspection reports whether a defect level or disposal conclusion
+// must hold back the associated safety clearance: 断股、超限磨损或待换绳。
+func IsBlockingInspection(defectLevel, conclusion string) bool {
+	return defectLevel == DefectBrokenStrand || defectLevel == DefectWearOverLimit || conclusion == ConclusionReplacePending
+}
+
 var VesselCallTransitions = map[string]map[string]bool{
 	"planned":  {"approach": true, "moored": true},
 	"approach": {"moored": true, "departed": true, "planned": true},
@@ -51,6 +88,13 @@ var SafetyClearanceTransitions = map[string]map[string]bool{
 	"cleared":    {"restricted": true, "expired": true, "pending": true},
 	"restricted": {"expired": true, "cleared": true},
 	"expired":    {"restricted": true},
+}
+
+var LineInspectionTransitions = map[string]map[string]bool{
+	"open":       {"blocking": true, "resolved": true, "superseded": true},
+	"blocking":   {"resolved": true, "superseded": true},
+	"resolved":   {},
+	"superseded": {},
 }
 
 func CanTransition(graph map[string]map[string]bool, from, to string) bool {

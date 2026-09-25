@@ -32,15 +32,18 @@ func New(cfg config.Config, db *gorm.DB, redisClient *redis.Client, logger *slog
 	mooringPlanRepository := repository.NewMooringPlanRepository(db)
 	weatherWindowRepository := repository.NewWeatherWindowRepository(db)
 	safetyClearanceRepository := repository.NewSafetyClearanceRepository(db)
+	lineInspectionRepository := repository.NewLineInspectionRepository(db)
 	vesselCallService := service.NewVesselCallService(vesselCallRepository, securityService)
 	mooringPlanService := service.NewMooringPlanService(mooringPlanRepository, securityService)
 	weatherWindowService := service.NewWeatherWindowService(weatherWindowRepository, securityService)
-	safetyClearanceService := service.NewSafetyClearanceService(safetyClearanceRepository, securityService)
+	safetyClearanceService := service.NewSafetyClearanceService(safetyClearanceRepository, lineInspectionRepository, securityService)
+	lineInspectionService := service.NewLineInspectionService(lineInspectionRepository, safetyClearanceRepository, securityService)
 	vesselCallHandler := handler.NewVesselCallHandler(vesselCallService)
 	mooringPlanHandler := handler.NewMooringPlanHandler(mooringPlanService)
 	weatherWindowHandler := handler.NewWeatherWindowHandler(weatherWindowService)
 	safetyClearanceHandler := handler.NewSafetyClearanceHandler(safetyClearanceService)
-	systemHandler := handler.NewSystemHandler(securityService, vesselCallService, mooringPlanService, weatherWindowService, safetyClearanceService, db, redisClient)
+	lineInspectionHandler := handler.NewLineInspectionHandler(lineInspectionService)
+	systemHandler := handler.NewSystemHandler(securityService, vesselCallService, mooringPlanService, weatherWindowService, safetyClearanceService, lineInspectionService, db, redisClient)
 
 	engine.GET("/healthz", systemHandler.Health)
 	engine.POST("/api/auth/login", systemHandler.Login)
@@ -58,6 +61,7 @@ func New(cfg config.Config, db *gorm.DB, redisClient *redis.Client, logger *slog
 	mooringPlanHandler.Register(api)
 	weatherWindowHandler.Register(api)
 	safetyClearanceHandler.Register(api)
+	lineInspectionHandler.Register(api)
 
 	engine.NoRoute(func(c *gin.Context) {
 		if c.Request.Method == http.MethodOptions {

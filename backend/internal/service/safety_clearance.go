@@ -23,12 +23,13 @@ type SafetyClearanceService interface {
 }
 
 type safetyClearanceService struct {
-	repository repository.SafetyClearanceRepository
-	security   SecurityService
+	repository  repository.SafetyClearanceRepository
+	inspections repository.LineInspectionRepository
+	security    SecurityService
 }
 
-func NewSafetyClearanceService(repo repository.SafetyClearanceRepository, security SecurityService) SafetyClearanceService {
-	return &safetyClearanceService{repository: repo, security: security}
+func NewSafetyClearanceService(repo repository.SafetyClearanceRepository, inspections repository.LineInspectionRepository, security SecurityService) SafetyClearanceService {
+	return &safetyClearanceService{repository: repo, inspections: inspections, security: security}
 }
 
 func (s *safetyClearanceService) List(ctx context.Context, query dto.PageQuery) (repository.Page[model.SafetyClearance], error) {
@@ -57,6 +58,7 @@ func (s *safetyClearanceService) Create(ctx context.Context, input dto.CreateSaf
 		MetricValue: input.MetricValue, MetricUnit: strings.TrimSpace(input.MetricUnit),
 		EffectiveAt: input.EffectiveAt.UTC(), Evidence: strings.TrimSpace(input.Evidence),
 		RelatedCode:   strings.ToUpper(strings.TrimSpace(input.RelatedCode)),
+		PlanCode:      strings.ToUpper(strings.TrimSpace(input.PlanCode)),
 		WindowVersion: windowVersion,
 	}
 	if err := s.repository.Create(ctx, &item); err != nil {
@@ -85,6 +87,7 @@ func (s *safetyClearanceService) Update(ctx context.Context, id uint, input dto.
 	current.EffectiveAt = input.EffectiveAt.UTC()
 	current.Evidence = strings.TrimSpace(input.Evidence)
 	current.RelatedCode = strings.ToUpper(strings.TrimSpace(input.RelatedCode))
+	current.PlanCode = strings.ToUpper(strings.TrimSpace(input.PlanCode))
 	if input.WindowVersion > 0 && input.WindowVersion != current.WindowVersion {
 		current.WindowVersion = input.WindowVersion
 		current.SubmittedBy = ""
@@ -133,11 +136,15 @@ func (s *safetyClearanceService) confirmClearance(ctx context.Context, current m
 	if input.WindowVersion == 0 {
 		return model.SafetyClearance{}, ErrWindowVersion
 	}
+	if err := s.ensureClearanceNotBlocked(ctx, current.PlanCode); err != nil {
+		return model.SafetyClearance{}, err
+	}
 	now := time.Now().UTC()
 	if current.SubmittedBy == "" {
 		current.WindowVersion = input.WindowVersion
 		current.SubmittedBy = actor
 		current.SubmittedAt = &now
+		current.ReturnedReason = ""
 		current.Version = input.ExpectedVersion + 1
 		current.UpdatedAt = now
 		if err := s.repository.Update(ctx, current.ID, input.ExpectedVersion, &current); err != nil {
@@ -185,6 +192,24 @@ func (s *safetyClearanceService) Delete(ctx context.Context, id uint, actor, req
 
 func (s *safetyClearanceService) StatusCounts(ctx context.Context) (map[string]int64, error) {
 	return s.repository.CountByStatus(ctx)
+}
+
+// ensureClearanceNotBlocked refuses to release a clearance while the mooring
+// plan has a blocking line inspection (断股、超限磨损或待换绳). The hold is
+// lifted only after the rope is replaced and the recheck passes.
+func (s *safetyClearanceService) ensureClearanceNotBlocked(ctx context.Context, planCode string) error {
+	if strings.TrimSpace(planCode) == "" {
+		return nil
+	}
+	blocking, err := s.inspections.ActiveBlocking(ctx, planCode)
+	if err != nil {
+		return fmt.Errorf("check 缆绳检查 blocks: %w", err)
+	}
+	if len(blocking) == 0 {
+		return nil
+	}
+	first := blocking[0]
+	return fmt.Errorf("%w: %s %s（%s）", ErrClearanceBlocked, first.Code, first.LinePosition, first.BlockedReason)
 }
 
 func validateSafetyClearanceBusinessFields(code, name, facility, owner string) error {

@@ -19,13 +19,14 @@ func TestSafetyClearanceRequiresIndependentReviewer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open database: %v", err)
 	}
-	if err := db.AutoMigrate(&model.SafetyClearance{}, &model.AuditLog{}); err != nil {
+	if err := db.AutoMigrate(&model.SafetyClearance{}, &model.LineInspection{}, &model.AuditLog{}); err != nil {
 		t.Fatalf("migrate database: %v", err)
 	}
 
 	clearanceRepository := repository.NewSafetyClearanceRepository(db)
+	inspectionRepository := repository.NewLineInspectionRepository(db)
 	security := NewSecurityService(repository.NewSecurityRepository(db), config.Config{})
-	svc := NewSafetyClearanceService(clearanceRepository, security)
+	svc := NewSafetyClearanceService(clearanceRepository, inspectionRepository, security)
 	item := model.SafetyClearance{
 		BaseModel: model.BaseModel{Code: "SC-TEST", Name: "Test clearance", Status: model.SafetyClearanceInitialStatus, Version: 1},
 		Facility:  "Berth A", Owner: "operations", Category: "test", RiskLevel: "medium",

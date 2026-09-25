@@ -19,12 +19,13 @@ type SystemHandler struct {
 	mooringPlan     service.MooringPlanService
 	weatherWindow   service.WeatherWindowService
 	safetyClearance service.SafetyClearanceService
+	lineInspection  service.LineInspectionService
 	db              *gorm.DB
 	redis           *redis.Client
 }
 
-func NewSystemHandler(security service.SecurityService, vesselCall service.VesselCallService, mooringPlan service.MooringPlanService, weatherWindow service.WeatherWindowService, safetyClearance service.SafetyClearanceService, db *gorm.DB, redisClient *redis.Client) *SystemHandler {
-	return &SystemHandler{security: security, vesselCall: vesselCall, mooringPlan: mooringPlan, weatherWindow: weatherWindow, safetyClearance: safetyClearance, db: db, redis: redisClient}
+func NewSystemHandler(security service.SecurityService, vesselCall service.VesselCallService, mooringPlan service.MooringPlanService, weatherWindow service.WeatherWindowService, safetyClearance service.SafetyClearanceService, lineInspection service.LineInspectionService, db *gorm.DB, redisClient *redis.Client) *SystemHandler {
+	return &SystemHandler{security: security, vesselCall: vesselCall, mooringPlan: mooringPlan, weatherWindow: weatherWindow, safetyClearance: safetyClearance, lineInspection: lineInspection, db: db, redis: redisClient}
 }
 
 func (h *SystemHandler) Login(c *gin.Context) {
@@ -89,6 +90,13 @@ func (h *SystemHandler) Overview(c *gin.Context) {
 		return
 	}
 	result["clearance"] = safetyClearanceCounts
+
+	lineInspectionCounts, err := h.lineInspection.StatusCounts(ctx)
+	if err != nil {
+		handleError(c, err)
+		return
+	}
+	result["inspections"] = lineInspectionCounts
 
 	util.OK(c, result)
 }

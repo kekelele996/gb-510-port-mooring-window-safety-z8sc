@@ -7,6 +7,7 @@ type PageQuery struct {
 	PageSize int    `form:"pageSize"`
 	Search   string `form:"search"`
 	Status   string `form:"status"`
+	PlanCode string `form:"planCode"`
 }
 
 type LoginRequest struct {

@@ -10,4 +10,5 @@ var (
 	ErrSelfApproval      = errors.New("the submitter cannot approve the same safety clearance")
 	ErrReviewerRequired  = errors.New("a reviewer or administrator must perform the second confirmation")
 	ErrWindowVersion     = errors.New("the weather window version is missing or changed")
+	ErrClearanceBlocked  = errors.New("a blocking mooring line inspection holds back the safety clearance")
 )

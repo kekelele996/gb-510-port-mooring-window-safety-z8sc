@@ -15,11 +15,33 @@ export interface DomainRecord {
   effectiveAt: string;
   evidence: string;
   relatedCode: string;
+  planCode?: string;
   windowVersion?: number;
   submittedBy?: string;
   submittedAt?: string;
   confirmedBy?: string;
   confirmedAt?: string;
+  returnedReason?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LineInspection {
+  id: number;
+  code: string;
+  name: string;
+  status: string;
+  version: number;
+  description: string;
+  planCode: string;
+  linePosition: string;
+  inspectedAt: string;
+  inspector: string;
+  defectLevel: string;
+  conclusion: string;
+  blockedReason: string;
+  resolvedBy?: string;
+  resolvedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -3,6 +3,7 @@ import VesselCallPage from '../pages/VesselCallPage.vue';
 import MooringPlanPage from '../pages/MooringPlanPage.vue';
 import WeatherWindowPage from '../pages/WeatherWindowPage.vue';
 import SafetyClearancePage from '../pages/SafetyClearancePage.vue';
+import LineInspectionPage from '../pages/LineInspectionPage.vue';
 import AuditPage from '../pages/AuditPage.vue';
 import { ensureSession } from '../hooks/useAuth';
 
@@ -12,6 +13,7 @@ export const router = createRouter({ history: createWebHistory(), routes: [
   { path: '/', redirect: '/vessels' },
   { path: '/vessels', component: VesselCallPage, meta: { minimumRole: 'viewer' } },
   { path: '/plans', component: MooringPlanPage, meta: { minimumRole: 'viewer' } },
+  { path: '/inspections', component: LineInspectionPage, meta: { minimumRole: 'viewer' } },
   { path: '/weather-windows', component: WeatherWindowPage, meta: { minimumRole: 'viewer' } },
   { path: '/clearance', component: SafetyClearancePage, meta: { minimumRole: 'operator' } },
   { path: '/audit', component: AuditPage, meta: { minimumRole: 'reviewer' } },
